@@ -5,10 +5,16 @@
 + API translation from Amazon S3 to Azure Blob Storage or Alibaba OSS
 + Data migration between cloud providers
 
-## Requirements
+## Installation
+Requirements:
 + [Maven](https://maven.apache.org/)
 + Active account at [manage.flexify.io](https://manage.flexify.io/)
 + API key (request by emailing us at [info@flexify.io](mailtu:info@flexify.io))
+
+To install dependencies:
+```sh
+mvn clean install
+```
 
 ## Configuration
 Each sample class has several configuration parameters such as storage account keys. Please replace placeholder values with valid parameters before running the samples.
