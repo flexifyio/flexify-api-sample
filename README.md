@@ -43,7 +43,7 @@ ID   | Cloud Storage Provider
 12   | Technoserv Cloud
 
 ## API Documentation
-The complete API documentation along with API source code is published as [flexify-manage-api-client]https://github.com/flexifyio/flexify-manage-api-client 
+The complete API documentation along with API source code is published as [flexify-manage-api-client](https://github.com/flexifyio/flexify-manage-api-client) 
 
 ## Contact
 For any questions or suggestions please contact [info@flexify.io](mailtu:info@flexify.io)
