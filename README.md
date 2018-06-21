@@ -37,7 +37,7 @@ pip install git+https://github.com/flexifyio/flexify-manage-api-client-python.gi
 
 ### Samples
 
-+ [Data Migration](python python/datamigration.py) -
++ [Data Migration](python/datamigration.py) -
   create new migration in Flexiy.IO and poll the migration state
 ```sh
 python python/datamigration.py
