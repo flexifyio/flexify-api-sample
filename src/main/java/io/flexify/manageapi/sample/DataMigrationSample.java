@@ -7,9 +7,18 @@ package io.flexify.manageapi.sample;
 
 import io.flexify.apiclient.api.MigrationsControllerApi;
 import io.flexify.apiclient.api.StoragesControllerApi;
+import io.flexify.apiclient.handler.ApiException;
 import io.flexify.apiclient.handler.Configuration;
 import io.flexify.apiclient.handler.auth.ApiKeyAuth;
-import io.flexify.apiclient.model.*;
+import io.flexify.apiclient.model.AddMigrationRequest;
+import io.flexify.apiclient.model.AddMigrationRequestMapping;
+import io.flexify.apiclient.model.AddStorageAccountRequest;
+import io.flexify.apiclient.model.CloudLocation;
+import io.flexify.apiclient.model.Migration;
+import io.flexify.apiclient.model.MigrationSettings;
+import io.flexify.apiclient.model.NewStorageAccount;
+import io.flexify.apiclient.model.StorageAccountSettings;
+import jersey.repackaged.com.google.common.base.Objects;
 
 /**
  * Sample code demonstrating starting and monitoring migration via Flexify.IO
@@ -42,41 +51,66 @@ public class DataMigrationSample {
         StoragesControllerApi storagesApi = new StoragesControllerApi();
         MigrationsControllerApi migrationsApi = new MigrationsControllerApi();
 
-        // 2. Add source storage account and storage
-        final Long sourceStorageAccountId = storagesApi
-                .addStorageAccount(new AddStorageAccountRequest()
-                    .storageAccount(new StorageAccountCreateRequest()
-                        .providerId(SOURCE_PROVIDER_ID)
-                        .identity(SOURCE_IDENTITY)
-                        .credential(SOURCE_CREDENTIAL)
-                        .useSsl(true)))
-                .getId();
-        final Long sourceStorageId = storagesApi
-                .addStorages(sourceStorageAccountId, new AddStoragesRequest()
-                    .addBucketsItem(new Bucket().name(SOURCE_BUCKET)))
-                .getIds().get(0);
+        // 2. Add source storage account
+        Long sourceStorageAccountId;
+        try {
+            sourceStorageAccountId = storagesApi
+                    .addStorageAccount(new AddStorageAccountRequest()
+                        .storageAccount(new NewStorageAccount()
+                            .providerId(SOURCE_PROVIDER_ID)
+                            .settings(new StorageAccountSettings()
+                                .identity(SOURCE_IDENTITY)
+                                .credential(SOURCE_CREDENTIAL)
+                                .useSsl(true)))
+                            .verifyKeys(true))
+                    .getId();
+        } catch (ApiException ex) {
+            // account may already exist
+            System.out.println(ex.getResponseBody());
+            FlexifyException fex = FlexifyException.fromApi(ex);
+            if (fex != null && Objects.equal(fex.message, "STORAGE_ACCOUNT_ALREADY_EXISTS")) {
+                sourceStorageAccountId = Long.parseLong(fex.args[0].toString());
+            } else {
+                throw ex;
+            }
+        }
 
-        // 3. Add destination storage account and storage
-        final Long destinationStorageAccountId = storagesApi
+        // 3. Add destination storage account
+        Long destinationStorageAccountId;
+        try {
+            destinationStorageAccountId = storagesApi
                 .addStorageAccount(new AddStorageAccountRequest()
-                    .storageAccount(new StorageAccountCreateRequest()
+                    .storageAccount(new NewStorageAccount()
                         .providerId(DESTINATION_PROVIDER_ID)
-                        .identity(DESTINATION_IDENTITY)
-                        .credential(DESTINATION_CREDENTIAL)
-                        .useSsl(true)))
+                        .settings(new StorageAccountSettings()
+                            .identity(DESTINATION_IDENTITY)
+                            .credential(DESTINATION_CREDENTIAL)
+                            .useSsl(true)))
+                        .verifyKeys(true))
                 .getId();
-        final Long destinationStorageId = storagesApi
-                .addStorages(destinationStorageAccountId, new AddStoragesRequest()
-                    .addBucketsItem(new Bucket().name(DESTINATION_BUCKET)))
-                .getIds().get(0);
+        } catch (ApiException ex) {
+            // account may already exist
+            FlexifyException fex = FlexifyException.fromApi(ex);
+            if (fex != null && Objects.equal(fex.message, "STORAGE_ACCOUNT_ALREADY_EXISTS")) {
+                destinationStorageAccountId = Long.parseLong(fex.args[0].toString());
+            } else {
+                throw ex;
+            }
+        }
 
         // 4. Start migration
         final Long migrationId = migrationsApi
                 .addMigration(new AddMigrationRequest()
-                    .migrationMode(AddMigrationRequest.MigrationModeEnum.COPY)
-                    .slots(8)
-                    .sourceId(sourceStorageId)
-                    .destinationId(destinationStorageId))
+                    .settings(new MigrationSettings()
+                        .migrationMode(MigrationSettings.MigrationModeEnum.COPY)
+                        .slotsPerMapping(8)
+                        .enginesLocation(new CloudLocation()))
+                    .addMappingsItem(new AddMigrationRequestMapping()
+                        .sourceStorageAccountId(sourceStorageAccountId)
+                        .sourceBucketName(SOURCE_BUCKET)
+                        .destStorageAccountId(destinationStorageAccountId)
+                        .destBucketName(DESTINATION_BUCKET)
+                    ))
                 .getId();
 
         // 5. Poll the migration state every 5 seconds
@@ -104,8 +138,12 @@ public class DataMigrationSample {
 
     private static boolean printMigrationStatus(Migration migration) {
         switch (migration.getStat().getState()) {
-        case NOT_ASSIGNED:
-            System.out.println("Assigning...");
+        case WAITING:
+            System.out.println("Waiting...");
+            return false;
+
+        case STARTING:
+            System.out.println("Starting...");
             return false;
 
         case IN_PROGRESS:
@@ -117,12 +155,12 @@ public class DataMigrationSample {
             }
             return false;
 
-        case IN_PROGRESS_CANCELING:
-            System.out.println("IN_PROGRESS_CANCELING");
+        case STOPPING:
+            System.out.println("STOPPING");
             return false;
 
-        case CANCELED:
-            System.out.println("CANCELED");
+        case STOPPED:
+            System.out.println("STOPPED");
             return true;
 
         case SUCCEEDED:
@@ -131,6 +169,10 @@ public class DataMigrationSample {
 
         case FAILED:
             System.out.println("FAILED");
+            return true;
+
+        case NO_CONNECTION_TO_ENGINE:
+            System.out.println("NO_CONNECTION_TO_ENGINE");
             return true;
         }
 

@@ -58,6 +58,8 @@ ID   | Cloud Storage Provider
 10   | DigitalOcean Spaces in Amsterdam
 11   | DigitalOcean Spaces in Singapore
 12   | Technoserv Cloud
+13   | Airee Cloud
+14   | DataLine
 
 ## API Documentation
 The complete API documentation along with API source code is published as [flexify-manage-api-client](https://github.com/flexifyio/flexify-manage-api-client) 
