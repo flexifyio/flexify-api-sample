@@ -25,28 +25,20 @@ import io.flexify.apiclient.model.StorageAccountSettings;
 public class DataMigrationSample {
 
     // Please contact info@flexify.io to get the URL and the API key
-    // private final static String BASE_PATH_URL = "https://flexify-manage.azurewebsites.net/backend/";
-    // private final static String API_KEY = "<your Flexify.IO API key>";
-    private final static String BASE_PATH_URL = "https://flexify-manage-test.azurewebsites.net/backend/";
-    private final static String API_KEY = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJza0BmbGV4aWZ5LmlvIiwiaWF0IjoxNTQ5NDQyNzEwLCJzZWVkIjoiaFpUQVJkZWhXZSJ9.2aqxFxsb48vAcJum_FO0fQYYCoh1vlJMhxAgeSvKOT6XpvziusvkaoIMtHfdaNCCzK1sz8kuhF1LtdpqraGTUw";
+    private final static String BASE_PATH_URL = "https://flexify-manage.azurewebsites.net/backend/";
+    private final static String API_KEY = "<your Flexify.IO API key>";
 
     // Migration Source
     public static final Long SOURCE_PROVIDER_ID = 1L; // Amazon S3
-    // public static final String SOURCE_IDENTITY = "AKIAJO2AZ3R3Z2TXJWWQ";
-    // public static final String SOURCE_CREDENTIAL = "<your secret key>";
-    // public static final String SOURCE_BUCKET = "bucket_1";
-    public static final String SOURCE_IDENTITY = "AKIAIMBUKJYLGX2244IA";
-    public static final String SOURCE_CREDENTIAL = "HBoKsmFgc0xXxzq6EwfCFp2UBnoHrO5a7fw4/s5T";
-    public static final String SOURCE_BUCKET = "flexify";
+    public static final String SOURCE_IDENTITY = "AKIAJO2AZ3R3Z2TXJWWQ";
+    public static final String SOURCE_CREDENTIAL = "<your secret key>";
+    public static final String SOURCE_BUCKET = "bucket_1";
 
     // Migration Destination
     public static final Long DESTINATION_PROVIDER_ID = 2L; // Azure Bob Storage
-    // public static final String DESTINATION_IDENTITY = "flexifyuseast";
-    // public static final String DESTINATION_CREDENTIAL = "<your secret key>";
-    // public static final String DESTINATION_BUCKET = "bucket_2";
     public static final String DESTINATION_IDENTITY = "flexifyuseast";
-    public static final String DESTINATION_CREDENTIAL = "v3SLDLGjhwOvvU0JrL/Skq7LlFHb3p/tEfyF75/R2bJTd3x0MLTl8SG2pUYPJC5Mz1O97dim5MVClHNTwvZ54g==";
-    public static final String DESTINATION_BUCKET = "flexify";
+    public static final String DESTINATION_CREDENTIAL = "<your secret key>";
+    public static final String DESTINATION_BUCKET = "bucket_2";
 
     public static void main(String[] args) throws Exception {
 
