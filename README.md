@@ -19,6 +19,7 @@ Requirements:
 
 To install dependencies:
 ```sh
+cd java
 mvn clean install
 ```
 ### Samples
@@ -57,12 +58,14 @@ ID   | Cloud Storage Provider
 9    | DigitalOcean Spaces in New York
 10   | DigitalOcean Spaces in Amsterdam
 11   | DigitalOcean Spaces in Singapore
+17   | DigitalOcean Spaces in San Francisco
 12   | Technoserv Cloud
 13   | Airee Cloud
 14   | DataLine
+16   | Dell EMC - ECS Test Drive
 
 ## API Documentation
-The complete API documentation along with API source code is published as [flexify-manage-api-client](https://github.com/flexifyio/flexify-manage-api-client) 
+The complete API documentation along with API source code is published as [flexify-manage-api-client](https://github.com/flexifyio/flexify-manage-api-client)
 
 ## Contact
 For any questions or suggestions please contact [info@flexify.io](mailtu:info@flexify.io)

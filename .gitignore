@@ -1,8 +1,8 @@
-/target/
-.settings
-.classpath
-.project
-.externalToolBuilders
-/.idea
-/*.iml
-.factorypath
+java/target/
+java/.settings
+java/.classpath
+java/.project
+java/.externalToolBuilders
+java/.idea
+java//*.iml
+java/.factorypath
