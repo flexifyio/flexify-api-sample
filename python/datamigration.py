@@ -2,14 +2,16 @@ from __future__ import print_function
 
 import flexify_api
 import time
-from flexify_api import ApiClient, StoragesControllerApi, MigrationsControllerApi, StorageAccountCreateRequest, \
-    AddStoragesRequest, Bucket, AddMigrationRequest, Migration, AddStorageAccountRequest
+import json
+from flexify_api import ApiClient, StorageAccountsControllerApi, MigrationsControllerApi, \
+    AddStorageAccountRequest, NewStorageAccount, StorageAccountSettings, \
+    AddMigrationRequest, AddMigrationRequestMapping, MigrationSettings, Migration
 from flexify_api.rest import ApiException
 
 # Configuration
 
 # Please contact info@flexify.io to get the URL and the API key
-BASE_PATH_URL = 'https://flexify-manage.azurewebsites.net/backend/'
+BASE_PATH_URL = 'http://flexify-manage.azurewebsites.net/backend/'
 API_KEY = '<your Flexify.IO API key>'
 
 # Migration Source
@@ -24,30 +26,39 @@ DESTINATION_IDENTITY = 'autotest12'
 DESTINATION_CREDENTIAL = '<your secret key>'
 DESTINATION_BUCKET = 'destination_bucket'
 
-
 # Helper function to print migration status
 def print_migration_status(migration: Migration):
     print('Migration (id=%d) status is ' % migration.id, end='')
-    if migration.stat.state == 'NOT_ASSIGNED':
-        print('Assigning...')
-        return False;
+    if migration.stat.state == 'WAITING':
+        print('Waiting...')
+        return False
+    elif migration.stat.state == 'STARTING':
+        print('Starting...')
+        return False
+    elif migration.stat.state == 'RESTARTING':
+        print('Restarting...')
+        return False
     elif migration.stat.state == 'IN_PROGRESS':
         if migration.stat.bytes_processed:
-            print('IN_PROGRESS. Bytes processed %d' % migration.stat.bytes_processed)
+            print('IN_PROGRESS. Bytes processed %d' %
+                  migration.stat.bytes_processed)
         else:
             print('IN_PROGRESS. Starting')
-        return False;
-    elif migration.stat.state == 'IN_PROGRESS_CANCELING':
-        print('IN_PROGRESS_CANCELING')
         return False
-    elif migration.stat.state == 'CANCELED':
-        print('CANCELED')
+    elif migration.stat.state == 'STOPPING':
+        print('Stopping...')
+        return False
+    elif migration.stat.state == 'STOPPED':
+        print('STOPPED')
         return True
     elif migration.stat.state == 'SUCCEEDED':
         print('SUCCEEDED')
         return True
     elif migration.stat.state == 'FAILED':
         print('FAILED')
+        return True
+    elif migration.stat.state == 'NO_CONNECTION_TO_ENGINE':
+        print('NO_CONNECTION_TO_ENGINE')
         return True
     print('Unknown migration state %s' % migration.stat.state)
     return True
@@ -62,52 +73,64 @@ try:
 
     api_client = ApiClient(configuration=configuration)
 
-    storages_api = StoragesControllerApi(api_client)
+    storage_accounts_api = StorageAccountsControllerApi(api_client)
     migrations_api = MigrationsControllerApi(api_client)
 
-    # Add source storage account and storage
-    source_storage_account_id = storages_api.add_storage_account(
-        AddStorageAccountRequest(
-            storage_account=StorageAccountCreateRequest(
-                provider_id=SOURCE_PROVIDER_ID,
-                identity=SOURCE_IDENTITY,
-                credential=SOURCE_CREDENTIAL,
-                use_ssl='true'
-            )
-        )
-    ).id
-    source_storage_id = storages_api.add_storages(
-        storage_account_id=source_storage_account_id,
-        request=AddStoragesRequest(
-            buckets=[Bucket(name=SOURCE_BUCKET)]
-        )
-    ).ids[0]
+    # Add source storage account
+    source_storage_account_id = None
+    try:
+        source_storage_account_id = storage_accounts_api.add_storage_account(
+            AddStorageAccountRequest(
+                storage_account=NewStorageAccount(
+                    provider_id=SOURCE_PROVIDER_ID,
+                    settings=StorageAccountSettings(
+                        identity=SOURCE_IDENTITY,
+                        credential=SOURCE_CREDENTIAL,
+                        use_ssl='true'
+                    )))).id
+    except ApiException as e:
+        if e.status != 422:
+            raise
+        rsp = json.loads(e.body)
+        if (rsp['message'] != 'STORAGE_ACCOUNT_ALREADY_EXISTS'):
+            raise
+        source_storage_account_id = rsp['id']
 
     # Add destination storage account and storage
-    destination_storage_account_id = storages_api.add_storage_account(
-        AddStorageAccountRequest(
-            storage_account=StorageAccountCreateRequest(
-                provider_id=DESTINATION_PROVIDER_ID,
-                identity=DESTINATION_IDENTITY,
-                credential=DESTINATION_CREDENTIAL,
-                use_ssl=True
-            ))
-    ).id
-    destination_storage_id = storages_api.add_storages(
-        storage_account_id=destination_storage_account_id,
-        request=AddStoragesRequest(
-            buckets=[Bucket(name=DESTINATION_BUCKET)]
-        )
-    ).ids[0]
+    destination_storage_account_id = None
+    try:
+        destination_storage_account_id = storage_accounts_api.add_storage_account(
+            AddStorageAccountRequest(
+                storage_account=NewStorageAccount(
+                    provider_id=DESTINATION_PROVIDER_ID,
+                    settings=StorageAccountSettings(
+                        identity=DESTINATION_IDENTITY,
+                        credential=DESTINATION_CREDENTIAL,
+                        use_ssl=True
+                    )))).id
+    except ApiException as e:
+        if e.status != 422:
+            raise
+        rsp = json.loads(e.body)
+        if (rsp['message'] != 'STORAGE_ACCOUNT_ALREADY_EXISTS'):
+            raise
+        destination_storage_account_id = rsp['id']
 
     # Start migration
     migrationId = migrations_api.add_migration(AddMigrationRequest(
-        source_id=source_storage_id,
-        destination_id=destination_storage_id,
-        count_source_objects=False,
-        slots=8,
-        migration_mode='COPY',
-        conflict_resolution='NEWER'
+        mappings=[AddMigrationRequestMapping(
+            source_storage_account_id=source_storage_account_id,
+            source_bucket_name=SOURCE_BUCKET,
+            dest_storage_account_id=destination_storage_account_id,
+            dest_bucket_name=DESTINATION_BUCKET
+        )],
+        settings=MigrationSettings(
+            name='Demo Migration',
+            migration_mode='COPY',
+            conflict_resolution='NEWER',
+            slots_per_mapping=4,
+            max_streams_per_slot=4
+        )
     )).id
 
     # Poll the migration state every 5 seconds

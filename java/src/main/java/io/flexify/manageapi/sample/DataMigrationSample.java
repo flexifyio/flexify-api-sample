@@ -1,12 +1,9 @@
-/*
- * Copyright (c) 2018 Flexify.IO. All rights reserved.
- * Use of this product is subject to license terms.
- */
-
 package io.flexify.manageapi.sample;
 
+import java.util.Objects;
+
 import io.flexify.apiclient.api.MigrationsControllerApi;
-import io.flexify.apiclient.api.StoragesControllerApi;
+import io.flexify.apiclient.api.StorageAccountsControllerApi;
 import io.flexify.apiclient.handler.ApiException;
 import io.flexify.apiclient.handler.Configuration;
 import io.flexify.apiclient.handler.auth.ApiKeyAuth;
@@ -18,12 +15,11 @@ import io.flexify.apiclient.model.Migration;
 import io.flexify.apiclient.model.MigrationSettings;
 import io.flexify.apiclient.model.NewStorageAccount;
 import io.flexify.apiclient.model.StorageAccountSettings;
-import jersey.repackaged.com.google.common.base.Objects;
 
 /**
  * Sample code demonstrating starting and monitoring migration via Flexify.IO
  * Management API.
- * 
+ *
  * @author Alexander Bondin
  */
 public class DataMigrationSample {
@@ -48,28 +44,26 @@ public class DataMigrationSample {
 
         // 1. Configure API
         setupApi();
-        StoragesControllerApi storagesApi = new StoragesControllerApi();
+        StorageAccountsControllerApi storageAccountsApi = new StorageAccountsControllerApi();
         MigrationsControllerApi migrationsApi = new MigrationsControllerApi();
 
         // 2. Add source storage account
         Long sourceStorageAccountId;
         try {
-            sourceStorageAccountId = storagesApi
+            sourceStorageAccountId = storageAccountsApi
                     .addStorageAccount(new AddStorageAccountRequest()
                         .storageAccount(new NewStorageAccount()
                             .providerId(SOURCE_PROVIDER_ID)
                             .settings(new StorageAccountSettings()
                                 .identity(SOURCE_IDENTITY)
                                 .credential(SOURCE_CREDENTIAL)
-                                .useSsl(true)))
-                            .verifyKeys(true))
+                                .useSsl(true))))
                     .getId();
         } catch (ApiException ex) {
             // account may already exist
-            System.out.println(ex.getResponseBody());
             FlexifyException fex = FlexifyException.fromApi(ex);
-            if (fex != null && Objects.equal(fex.message, "STORAGE_ACCOUNT_ALREADY_EXISTS")) {
-                sourceStorageAccountId = Long.parseLong(fex.args[0].toString());
+            if (fex != null && Objects.equals(fex.message, "STORAGE_ACCOUNT_ALREADY_EXISTS")) {
+                sourceStorageAccountId = fex.id;
             } else {
                 throw ex;
             }
@@ -78,21 +72,20 @@ public class DataMigrationSample {
         // 3. Add destination storage account
         Long destinationStorageAccountId;
         try {
-            destinationStorageAccountId = storagesApi
+            destinationStorageAccountId = storageAccountsApi
                 .addStorageAccount(new AddStorageAccountRequest()
                     .storageAccount(new NewStorageAccount()
                         .providerId(DESTINATION_PROVIDER_ID)
                         .settings(new StorageAccountSettings()
                             .identity(DESTINATION_IDENTITY)
                             .credential(DESTINATION_CREDENTIAL)
-                            .useSsl(true)))
-                        .verifyKeys(true))
+                            .useSsl(true))))
                 .getId();
         } catch (ApiException ex) {
             // account may already exist
             FlexifyException fex = FlexifyException.fromApi(ex);
-            if (fex != null && Objects.equal(fex.message, "STORAGE_ACCOUNT_ALREADY_EXISTS")) {
-                destinationStorageAccountId = Long.parseLong(fex.args[0].toString());
+            if (fex != null && Objects.equals(fex.message, "STORAGE_ACCOUNT_ALREADY_EXISTS")) {
+                destinationStorageAccountId = fex.id;
             } else {
                 throw ex;
             }
@@ -120,7 +113,7 @@ public class DataMigrationSample {
             completed = printMigrationStatus(migration);
             Thread.sleep(5000l);
         } while (!completed);
-        
+
     }
 
     /**
@@ -144,6 +137,10 @@ public class DataMigrationSample {
 
         case STARTING:
             System.out.println("Starting...");
+            return false;
+
+        case RESTARTING:
+            System.out.println("Restarting...");
             return false;
 
         case IN_PROGRESS:

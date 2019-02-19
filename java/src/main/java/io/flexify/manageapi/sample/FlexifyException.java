@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.flexify.apiclient.handler.ApiException;
 
 public class FlexifyException {
+    public Long id;
     public String message;
     public Object args[];
 
@@ -23,6 +24,7 @@ public class FlexifyException {
             FlexifyException res = mapper.readValue(apiEx.getResponseBody(), FlexifyException.class);
             return res;
         } catch (JsonParseException | JsonMappingException ex) {
+            System.out.println("Cannot parse response: " + ex.toString());
             return null;
         }
     }
