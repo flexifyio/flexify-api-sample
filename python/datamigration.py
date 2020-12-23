@@ -4,31 +4,34 @@ import flexify_api
 import time
 import json
 from flexify_api import ApiClient, StorageAccountsControllerApi, MigrationsControllerApi, \
-    AddStorageAccountRequest, NewStorageAccount, StorageAccountSettings, \
+    AddStorageAccountRequest, NewStorageAccount, StorageAccountSettingsReq, \
     AddMigrationRequest, AddMigrationRequestMapping, MigrationSettings, Migration
 from flexify_api.rest import ApiException
 
 # Configuration
 
 # Please contact info@flexify.io to get the URL and the API key
-BASE_PATH_URL = 'http://flexify-manage.azurewebsites.net/backend/'
+BASE_PATH_URL = 'https://api.flexify.io'
 API_KEY = '<your Flexify.IO API key>'
 
 # Migration Source
 SOURCE_PROVIDER_ID = 1  # Amazon S3
-SOURCE_IDENTITY = 'AKIAIQTQ3R3LBSHD27GQ'
+SOURCE_IDENTITY = 'AKIAIVW6TZW6Q4MBZZ7A'
 SOURCE_CREDENTIAL = '<your secret key>'
 SOURCE_BUCKET = 'source_bucket'
 
 # Migration Destination
 DESTINATION_PROVIDER_ID = 2  # Azure Bob Storage
-DESTINATION_IDENTITY = 'autotest12'
+DESTINATION_IDENTITY = 'flexifyuseast'
 DESTINATION_CREDENTIAL = '<your secret key>'
 DESTINATION_BUCKET = 'destination_bucket'
 
 # Helper function to print migration status
 def print_migration_status(migration: Migration):
     print('Migration (id=%d) status is ' % migration.id, end='')
+    if migration.stat.state == 'DEPLOYING':
+        print('Deploying engines...')
+        return False
     if migration.stat.state == 'WAITING':
         print('Waiting...')
         return False
@@ -52,7 +55,10 @@ def print_migration_status(migration: Migration):
         print('STOPPED')
         return True
     elif migration.stat.state == 'SUCCEEDED':
-        print('SUCCEEDED')
+        if migration.stat.objects_failed == 0:
+            print('DONE')
+        else:
+            print('DONE with ', migration.stat.objects_failed, ' failed objects')
         return True
     elif migration.stat.state == 'FAILED':
         print('FAILED')
@@ -83,7 +89,7 @@ try:
             AddStorageAccountRequest(
                 storage_account=NewStorageAccount(
                     provider_id=SOURCE_PROVIDER_ID,
-                    settings=StorageAccountSettings(
+                    settings=StorageAccountSettingsReq(
                         identity=SOURCE_IDENTITY,
                         credential=SOURCE_CREDENTIAL,
                         use_ssl='true'
@@ -103,7 +109,7 @@ try:
             AddStorageAccountRequest(
                 storage_account=NewStorageAccount(
                     provider_id=DESTINATION_PROVIDER_ID,
-                    settings=StorageAccountSettings(
+                    settings=StorageAccountSettingsReq(
                         identity=DESTINATION_IDENTITY,
                         credential=DESTINATION_CREDENTIAL,
                         use_ssl=True
@@ -127,9 +133,7 @@ try:
         settings=MigrationSettings(
             name='Demo Migration',
             migration_mode='COPY',
-            conflict_resolution='NEWER',
-            slots_per_mapping=4,
-            max_streams_per_slot=4
+            conflict_resolution='NEWER'
         )
     )).id
 
@@ -138,7 +142,7 @@ try:
     while (not completed):
         migration = migrations_api.get_migration(migrationId)
         completed = print_migration_status(migration)
-        time.sleep(5)
+        time.sleep(1)
 
 
 except ApiException as e:

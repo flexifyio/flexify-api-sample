@@ -25,7 +25,7 @@ import io.flexify.apiclient.model.StorageAccountSettingsReq;
 public class DataMigrationSample {
 
     // Please contact info@flexify.io to get the URL and the API key
-    private final static String BASE_PATH_URL = "https://api.test.flexify.io";
+    private final static String BASE_PATH_URL = "https://api.flexify.io";
     private final static String API_KEY = "<your Flexify.IO API key>";
 
     // Migration Source
@@ -95,6 +95,7 @@ public class DataMigrationSample {
         final Long migrationId = migrationsApi
                 .addMigration(new AddMigrationRequest()
                     .settings(new MigrationSettingsReq()
+                        .name("Demo Migration")
                         .migrationMode(MigrationModeEnum.COPY))
                     .addMappingsItem(new AddMigrationRequestMapping()
                         .sourceStorageAccountId(sourceStorageAccountId)

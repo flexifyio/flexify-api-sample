@@ -33,13 +33,13 @@ mvn exec:java -D"exec.mainClass"="io.flexify.manageapi.sample.DataMigrationSampl
 
 ### Installation
 ```sh
-pip install git+https://github.com/flexifyio/flexify-manage-api-client-python.git
+pip install git+https://github.com/flexifyio/flexify-api-python.git
 ```
 
 ### Samples
 
 + [Data Migration](python/datamigration.py) -
-  create new migration in Flexiy.IO and poll the migration state
+  create new migration in Flexify.IO and poll the migration state
 ```sh
 python python/datamigration.py
 ```
