@@ -10,11 +10,11 @@ import io.flexify.apiclient.handler.auth.ApiKeyAuth;
 import io.flexify.apiclient.model.AddMigrationRequest;
 import io.flexify.apiclient.model.AddMigrationRequestMapping;
 import io.flexify.apiclient.model.AddStorageAccountRequest;
-import io.flexify.apiclient.model.CloudLocation;
 import io.flexify.apiclient.model.Migration;
-import io.flexify.apiclient.model.MigrationSettings;
+import io.flexify.apiclient.model.MigrationSettingsReq;
+import io.flexify.apiclient.model.MigrationSettingsReq.MigrationModeEnum;
 import io.flexify.apiclient.model.NewStorageAccount;
-import io.flexify.apiclient.model.StorageAccountSettings;
+import io.flexify.apiclient.model.StorageAccountSettingsReq;
 
 /**
  * Sample code demonstrating starting and monitoring migration via Flexify.IO
@@ -25,20 +25,20 @@ import io.flexify.apiclient.model.StorageAccountSettings;
 public class DataMigrationSample {
 
     // Please contact info@flexify.io to get the URL and the API key
-    private final static String BASE_PATH_URL = "https://flexify-manage.azurewebsites.net/backend/";
+    private final static String BASE_PATH_URL = "https://api.test.flexify.io";
     private final static String API_KEY = "<your Flexify.IO API key>";
 
     // Migration Source
     public static final Long SOURCE_PROVIDER_ID = 1L; // Amazon S3
-    public static final String SOURCE_IDENTITY = "AKIAJO2AZ3R3Z2TXJWWQ";
-    public static final String SOURCE_CREDENTIAL = "<your secret key>";
-    public static final String SOURCE_BUCKET = "bucket_1";
+    public static final String SOURCE_IDENTITY = "AKIAIVW6TZW6Q4MBZZ7A";
+    public static final String SOURCE_CREDENTIAL = "<your Amazon S3 secret key>";
+    public static final String SOURCE_BUCKET = "<your source bucket>";
 
     // Migration Destination
     public static final Long DESTINATION_PROVIDER_ID = 2L; // Azure Bob Storage
     public static final String DESTINATION_IDENTITY = "flexifyuseast";
-    public static final String DESTINATION_CREDENTIAL = "<your secret key>";
-    public static final String DESTINATION_BUCKET = "bucket_2";
+    public static final String DESTINATION_CREDENTIAL = "<your Azure secret key>";
+    public static final String DESTINATION_BUCKET = "<your destination bucket>";
 
     public static void main(String[] args) throws Exception {
 
@@ -54,7 +54,7 @@ public class DataMigrationSample {
                     .addStorageAccount(new AddStorageAccountRequest()
                         .storageAccount(new NewStorageAccount()
                             .providerId(SOURCE_PROVIDER_ID)
-                            .settings(new StorageAccountSettings()
+                            .settings(new StorageAccountSettingsReq()
                                 .identity(SOURCE_IDENTITY)
                                 .credential(SOURCE_CREDENTIAL)
                                 .useSsl(true))))
@@ -76,7 +76,7 @@ public class DataMigrationSample {
                 .addStorageAccount(new AddStorageAccountRequest()
                     .storageAccount(new NewStorageAccount()
                         .providerId(DESTINATION_PROVIDER_ID)
-                        .settings(new StorageAccountSettings()
+                        .settings(new StorageAccountSettingsReq()
                             .identity(DESTINATION_IDENTITY)
                             .credential(DESTINATION_CREDENTIAL)
                             .useSsl(true))))
@@ -94,10 +94,8 @@ public class DataMigrationSample {
         // 4. Start migration
         final Long migrationId = migrationsApi
                 .addMigration(new AddMigrationRequest()
-                    .settings(new MigrationSettings()
-                        .migrationMode(MigrationSettings.MigrationModeEnum.COPY)
-                        .slotsPerMapping(8)
-                        .enginesLocation(new CloudLocation()))
+                    .settings(new MigrationSettingsReq()
+                        .migrationMode(MigrationModeEnum.COPY))
                     .addMappingsItem(new AddMigrationRequestMapping()
                         .sourceStorageAccountId(sourceStorageAccountId)
                         .sourceBucketName(SOURCE_BUCKET)
@@ -111,7 +109,7 @@ public class DataMigrationSample {
         do {
             Migration migration = migrationsApi.getMigration(migrationId);
             completed = printMigrationStatus(migration);
-            Thread.sleep(5000l);
+            Thread.sleep(1000l);
         } while (!completed);
 
     }
@@ -131,46 +129,52 @@ public class DataMigrationSample {
 
     private static boolean printMigrationStatus(Migration migration) {
         switch (migration.getStat().getState()) {
-        case WAITING:
-            System.out.println("Waiting...");
-            return false;
+            case DEPLOYING:
+                System.out.format("Deploying engines...%n");
+                return false;
 
-        case STARTING:
-            System.out.println("Starting...");
-            return false;
+            case WAITING:
+                System.out.format("Waiting...%n");
+                return false;
 
-        case RESTARTING:
-            System.out.println("Restarting...");
-            return false;
+            case STARTING:
+                System.out.format("Starting...%n");
+                return false;
 
-        case IN_PROGRESS:
-            if (migration.getStat().getBytesProcessed() == null) {
-                System.out.println("IN_PROGRESS. Starting...");
-            } else {
-                System.out
-                        .println("IN_PROGRESS. Bytes processed " + migration.getStat().getBytesProcessed());
-            }
-            return false;
+            case RESTARTING:
+                System.out.format("Restarting...%n");
+                return false;
 
-        case STOPPING:
-            System.out.println("STOPPING");
-            return false;
+            case IN_PROGRESS:
+                if (migration.getStat().getBytesProcessed() == null) {
+                    System.out.format("IN_PROGRESS. Starting...%n");
+                } else {
+                    System.out.format("IN_PROGRESS. Bytes processed %d%n" , migration.getStat().getBytesProcessed());
+                }
+                return false;
 
-        case STOPPED:
-            System.out.println("STOPPED");
-            return true;
+            case STOPPING:
+                System.out.format("STOPPING...%n");
+                return false;
 
-        case SUCCEEDED:
-            System.out.println("SUCCEEDED");
-            return true;
+            case STOPPED:
+                System.out.format("STOPPED%n");
+                return true;
 
-        case FAILED:
-            System.out.println("FAILED");
-            return true;
+            case SUCCEEDED:
+                if (migration.getStat().getObjectsFailed() == 0)
+                    System.out.format("DONE%n");
+                else
+                    System.out.format("DONE with %d FAILED objects", migration.getStat().getObjectsFailed());
+                return true;
 
-        case NO_CONNECTION_TO_ENGINE:
-            System.out.println("NO_CONNECTION_TO_ENGINE");
-            return true;
+            case FAILED:
+                System.out.format("FAILED%n");
+                return true;
+
+            case NO_CONNECTION_TO_ENGINE:
+                System.out.format("NO_CONNECTION_TO_ENGINE%n");
+                return true;
         }
 
         return true;

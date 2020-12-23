@@ -24,7 +24,7 @@ public class FlexifyException {
             FlexifyException res = mapper.readValue(apiEx.getResponseBody(), FlexifyException.class);
             return res;
         } catch (JsonParseException | JsonMappingException ex) {
-            System.out.println("Cannot parse response: " + ex.toString());
+            System.out.format("Cannot parse response: %s%n", ex.toString());
             return null;
         }
     }
